@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <time.h>
+#include <math.h>
 
 
 struct node {
@@ -84,50 +85,69 @@ void printList(struct node* node) {
 int random_numbers[1000];
 // Main function
 int main() {
+    int iterations=283;
+    double data_points[iterations];
+    double total_time = 0;
+    for (int j=0;j<iterations;j++){
 
-    struct node* head = NULL;
+        struct node* head = NULL;
 
-    srand(10);
+        srand(10);
 
-    int n  =1000;
+        int n  =1000;
 
-    int m  =10000;
+        int m  =10000;
 
-    double mMember = 0.99;
-    double mInsert = 0.005;
-    double mDelete = 0.005;
+        double mMember = 0.50;
+        double mInsert = 0.25;
+        double mDelete = 0.25;
 
-    for (int i = 0; i < 1000; i++){
-        int random_number = rand()%65536;
-        random_numbers[i] = random_number;
+        for (int i = 0; i < 1000; i++){
+            int random_number = rand()%65536;
+            random_numbers[i] = random_number;
+        }
+
+        int count = 0;
+        while (count<n){
+            int random_number = rand()%65536;
+            insert(&head, random_number);
+            // printf("\n%d", random_number);
+            count++;
+        }
+
+        clock_t start_time = clock(); 
+        for (int i = 0; i < mInsert*m; i++) {
+            int random_number =  random_numbers[i];
+            insert(&head, random_number);
+        }
+        for (int i = 0; i < mMember*m; i++) {
+            int random_number =  random_numbers[i];
+            member(&head, random_number);
+        }
+        for (int i = 0; i < mDelete*m; i++) {
+            int random_number =  random_numbers[i];
+            delete(&head, random_number);
+        }
+        clock_t finish_time = clock();
+        //printf("%.10f\n", start_time/CLOCKS_PER_SEC);
+        //printf("%.10f\n", finish_time/CLOCKS_PER_SEC);
+        double time_elapsed = ((double)(finish_time - start_time))/CLOCKS_PER_SEC;
+        //printf("%.20f\n", time_elapsed);
+        data_points[j] = time_elapsed;
+        total_time+=time_elapsed;
+
     }
-
-    int count = 0;
-    while (count<n){
-        int random_number = rand()%65536;
-        insert(&head, random_number);
-        // printf("\n%d", random_number);
-        count++;
+    double average_time= total_time/iterations;
+    printf("Average Time %.5f\n", average_time);
+    double squaredTotal = 0.0;
+    for (int t=0; t<iterations;t++){
+        double value =  (data_points[t]-average_time)*(data_points[t]-average_time);
+        squaredTotal += value;
     }
-
-    clock_t start_time = clock(); 
-    for (int i = 0; i < mInsert*m; i++) {
-        int random_number =  random_numbers[i];
-        insert(&head, random_number);
-    }
-    for (int i = 0; i < mMember*m; i++) {
-        int random_number =  random_numbers[i];
-        member(&head, random_number);
-    }
-    for (int i = 0; i < mDelete*m; i++) {
-        int random_number =  random_numbers[i];
-        delete(&head, random_number);
-    }
-    clock_t finish_time = clock();
-    //printf("%.10f\n", start_time/CLOCKS_PER_SEC);
-    //printf("%.10f\n", finish_time/CLOCKS_PER_SEC);
-    double time_elapsed = ((double)(finish_time - start_time))/CLOCKS_PER_SEC;
-    printf("%.20f\n", time_elapsed);
+    double sd = squaredTotal/iterations;
+    //printf("Standard total %f\n", squaredTotal);
+    printf("Standard Deviation %.5f\n", sd);
+    return 0;
     //printList(head);
     
 }

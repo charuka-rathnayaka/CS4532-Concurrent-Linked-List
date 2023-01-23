@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <time.h>
+#include <math.h>
 
 struct node {
     int data;
@@ -122,13 +123,13 @@ int random_numbers[1000];
 
 void *executeOperations(void* data){
     struct ThreadData *myData = (struct ThreadData*) data;
-    double mMember = 0.99;
-    double mInsert = 0.005;
-    double mDelete = 0.005;
-
-    double mMemberOperations = (mMember)*(myData->m);
+    double mMember = 0.50;
+    double mInsert = 0.25;
+    double mDelete = 0.25;
+    double mMemberOperations = (mMember)*(myData->m/(myData->threadCount));
     double mInsertOperations = (mInsert)*(myData->m/(myData->threadCount));
     double mDeleteOperations =(mDelete)*(myData->m/(myData->threadCount));
+    //printf("data %f %f %f %d \n",mMemberOperations,mInsertOperations,mDeleteOperations,myData->m);
 
     for (int i = 0; i < mMemberOperations; i++) {
         int random_number = random_numbers[i];
@@ -142,64 +143,84 @@ void *executeOperations(void* data){
         int random_number = random_numbers[i];
         delete(&(myData->head), random_number,(myData->mutex));
     }
+    return;
     
     
 }
 
 int main(int argc, char* argv[]) {
+    int iterations=283;
+    double data_points[iterations];
+    double total_time = 0;
+    for (int j=0;j<iterations;j++){
 
-    struct node* head = NULL;
-    int thread;
-    pthread_t* thread_handles;
-    
+        struct node* head = NULL;
+        int thread;
+        pthread_t* thread_handles;
+        
 
-    pthread_mutex_t mutex;
-    pthread_mutex_init(&mutex, NULL);
-    srand(10);
+        pthread_mutex_t mutex;
+        pthread_mutex_init(&mutex, NULL);
+        srand(100);
 
-    int n  =1000;
+        int n  =1000;
 
-    int m  =10000;
-    double mMember = 0.99;
-    double mInsert = 0.005;
-    double mDelete = 0.005;
+        int m  =10000;
+        double mMember = 0.50;
+        double mInsert = 0.25;
+        double mDelete = 0.25;
 
-    for (int i = 0; i < 1000; i++){
-        int random_number = rand()%65536;
-        random_numbers[i] = random_number;
+        for (int i = 0; i < 1000; i++){
+            int random_number = rand()%65536;
+            random_numbers[i] = random_number;
+        }
+
+        int count = 0;
+        while (count<n){
+            int random_number = rand()%65536;
+            insert(&head, random_number,mutex);
+            count++;
+        }
+
+        thread_count = strtol(argv[1],NULL,10);
+        thread_handles = malloc(thread_count*sizeof(pthread_t));
+
+        
+        clock_t start_time = clock(); 
+
+        for (thread =0; thread<thread_count; thread++){
+            struct ThreadData *data = malloc(sizeof(struct ThreadData));
+            data -> threadID = thread;
+            data -> threadCount = thread_count;
+            data -> head = head;
+            data -> m = m;
+            data -> mutex = mutex;
+            pthread_create(&thread_handles[thread],NULL, executeOperations, (void *) data);
+
+        }
+        //printf("count %d \n",thread_count);
+        for (thread=0;thread<thread_count;thread++){
+           // printf("%d",thread);
+            pthread_join(thread_handles[thread],NULL);
+            pthread_cancel(thread_handles[thread]);
+        }
+        clock_t finish_time = clock();
+        double time_elapsed = ((double)(finish_time - start_time))/CLOCKS_PER_SEC;
+        total_time+=time_elapsed;
+        data_points[j] = time_elapsed;
+        //printf("%f\n", time_elapsed);
+        free(thread_handles);
     }
-
-    int count = 0;
-    while (count<n){
-        int random_number = rand()%65536;
-        insert(&head, random_number,mutex);
-        count++;
+    double average_time= total_time/iterations;
+    printf("Average Time %.5f\n", average_time);
+    double squaredTotal = 0.0;
+    for (int t=0; t<iterations;t++){
+        double value =  (data_points[t]-average_time)*(data_points[t]-average_time);
+        squaredTotal += value;
     }
-
-    thread_count = strtol(argv[1],NULL,10);
-    thread_handles = malloc(thread_count*sizeof(pthread_t));
-
-    
-    clock_t start_time = clock(); 
-
-    for (thread =0; thread<thread_count; thread++){
-        struct ThreadData *data = malloc(sizeof(struct ThreadData));
-        data -> threadID = thread;
-        data -> threadCount = thread_count;
-        data -> head = head;
-        data -> m = m;
-        data -> mutex = mutex;
-        pthread_create(&thread_handles[thread],NULL, executeOperations, (void *) data);
-
-    }
-
-    for (thread=0;thread<thread_count;thread++){
-        pthread_join(thread_handles[thread],NULL);
-    }
-    clock_t finish_time = clock();
-    double time_elapsed = ((double)(finish_time - start_time))/CLOCKS_PER_SEC;
-    printf("%f\n", time_elapsed);
-    free(thread_handles);
+    double sd = squaredTotal/iterations;
+    //printf("Standard total %f\n", squaredTotal);
+    printf("Standard Deviation %.5f\n", sd);
     return 0;
 
 }
