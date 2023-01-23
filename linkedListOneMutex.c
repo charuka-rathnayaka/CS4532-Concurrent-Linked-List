@@ -26,25 +26,32 @@ void insert(struct node** head_ref, int new_data,pthread_mutex_t mutex) {
     new_node->data = new_data;
     new_node->next = NULL;
     bool data_exists = false;
-    pthread_mutex_lock(&mutex);
+   
     if (*head_ref == NULL) {
+        pthread_mutex_lock(&mutex);
         *head_ref = new_node;
         pthread_mutex_unlock(&mutex);
         return;
     }
+    pthread_mutex_lock(&mutex);
     while (last->next != NULL){
         if(last->data== new_data){
             data_exists = true;
+            break;
         }
         last = last->next;
     }
+    
     if(data_exists != true){
         last->next = new_node;
+        pthread_mutex_unlock(&mutex);
+
     }
     else{
+        pthread_mutex_unlock(&mutex);
         free(new_node);
     }
-    pthread_mutex_unlock(&mutex);
+    //pthread_mutex_unlock(&mutex);
     
     return;
 }
@@ -52,11 +59,12 @@ void insert(struct node** head_ref, int new_data,pthread_mutex_t mutex) {
 bool member(struct node** head_ref, int new_data,pthread_mutex_t mutex) {
     struct node *current_node = *head_ref;
     bool data_exists = false;
-    pthread_mutex_lock(&mutex);
+    
     if (*head_ref == NULL) {
-        pthread_mutex_unlock(&mutex);
+        //pthread_mutex_unlock(&mutex);
         return false;
     }
+    pthread_mutex_lock(&mutex);
     while (current_node->next != NULL){
         if(current_node->data== new_data){
             data_exists = true;
@@ -64,12 +72,12 @@ bool member(struct node** head_ref, int new_data,pthread_mutex_t mutex) {
         }
         current_node = current_node->next;
     }
+    pthread_mutex_unlock(&mutex);
     if(data_exists == true){
-        pthread_mutex_unlock(&mutex);
         return true;
     }
     else{
-        pthread_mutex_unlock(&mutex);
+        //pthread_mutex_unlock(&mutex);
         return false;
     }
 }
@@ -77,13 +85,15 @@ bool member(struct node** head_ref, int new_data,pthread_mutex_t mutex) {
 // Function to delete a node with a given key
 void delete(struct node** head_ref, int key,pthread_mutex_t mutex) {
     struct node* temp = *head_ref, *prev;
-    pthread_mutex_lock(&mutex);
+    
     if (temp != NULL && temp->data == key) {
+        pthread_mutex_lock(&mutex);
         *head_ref = temp->next;
-        free(temp);
         pthread_mutex_unlock(&mutex);
+        free(temp);
         return;
     }
+    pthread_mutex_lock(&mutex);
     while (temp != NULL && temp->data != key) {
         prev = temp;
         temp = temp->next;
@@ -95,6 +105,7 @@ void delete(struct node** head_ref, int key,pthread_mutex_t mutex) {
     prev->next = temp->next;
     pthread_mutex_unlock(&mutex);
     free(temp);
+    return;
 }
 
 // Function to print the linked list
@@ -150,7 +161,7 @@ int main(int argc, char* argv[]) {
 
     int m  =10000;
     double mMember = 0.99;
-    double mInsert =0.005;
+    double mInsert = 0.005;
     double mDelete = 0.005;
 
     for (int i = 0; i < 1000; i++){

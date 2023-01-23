@@ -71,6 +71,7 @@ void delete(struct node** head_ref, int key) {
     if (temp == NULL) return;
     prev->next = temp->next;
     free(temp);
+    return;
 }
 
 // Function to print the linked list
@@ -86,8 +87,7 @@ int main() {
 
     struct node* head = NULL;
 
-    int seed = rand()%100;
-    srand(seed);
+    srand(10);
 
     int n  =1000;
 

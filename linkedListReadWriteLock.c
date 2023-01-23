@@ -24,12 +24,14 @@ void insert(struct node** head_ref, int new_data,pthread_rwlock_t rwlock) {
     new_node->data = new_data;
     new_node->next = NULL;
     bool data_exists = false;
-    pthread_rwlock_wrlock(&rwlock);
+    
     if (*head_ref == NULL) {
+        pthread_rwlock_wrlock(&rwlock);
         *head_ref = new_node;
         pthread_rwlock_unlock(&rwlock);
         return;
     }
+    pthread_rwlock_wrlock(&rwlock);
     while (last->next != NULL){
         if(last->data== new_data){
             data_exists = true;
@@ -38,11 +40,13 @@ void insert(struct node** head_ref, int new_data,pthread_rwlock_t rwlock) {
     }
     if(data_exists != true){
         last->next = new_node;
+        pthread_rwlock_unlock(&rwlock);
     }
     else{
+        pthread_rwlock_unlock(&rwlock);
         free(new_node);
     }
-    pthread_rwlock_unlock(&rwlock);
+    
     
     return;
 }
@@ -50,11 +54,11 @@ void insert(struct node** head_ref, int new_data,pthread_rwlock_t rwlock) {
 bool member(struct node** head_ref, int new_data,pthread_rwlock_t rwlock) {
     struct node *current_node = *head_ref;
     bool data_exists = false;
-    pthread_rwlock_rdlock(&rwlock);
     if (*head_ref == NULL) {
-        pthread_rwlock_unlock(&rwlock);
+        //pthread_rwlock_unlock(&rwlock);
         return false;
     }
+    pthread_rwlock_rdlock(&rwlock);
     while (current_node->next != NULL){
         if(current_node->data== new_data){
             data_exists = true;
@@ -75,13 +79,15 @@ bool member(struct node** head_ref, int new_data,pthread_rwlock_t rwlock) {
 // Function to delete a node with a given key
 void delete(struct node** head_ref, int key,pthread_rwlock_t rwlock) {
     struct node* temp = *head_ref, *prev;
-    pthread_rwlock_wrlock(&rwlock);
+    
     if (temp != NULL && temp->data == key) {
+        pthread_rwlock_wrlock(&rwlock);
         *head_ref = temp->next;
         pthread_rwlock_unlock(&rwlock);
         free(temp);
         return;
     }
+    pthread_rwlock_wrlock(&rwlock);
     while (temp != NULL && temp->data != key) {
         prev = temp;
         temp = temp->next;
@@ -93,6 +99,7 @@ void delete(struct node** head_ref, int key,pthread_rwlock_t rwlock) {
     prev->next = temp->next;
     pthread_rwlock_unlock(&rwlock);
     free(temp);
+    return;
 }
 
 // Function to print the linked list
@@ -116,6 +123,7 @@ void *executeOperations(void* data){
     double mMemberOperations = (mMember)*(myData->m);
     double mInsertOperations = (mInsert)*(myData->m/(myData->threadCount));
     double mDeleteOperations =(mDelete)*(myData->m/(myData->threadCount));
+    //printf("data %f %f %f %d \n",mMemberOperations,mInsertOperations,mDeleteOperations,myData->m);
 
     for (int i = 0; i < mMemberOperations; i++) {
         int random_number = random_numbers[i];
