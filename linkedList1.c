@@ -4,35 +4,12 @@
 #include <pthread.h>
 #include <time.h>
 
-// Define the node structure
+
 struct node {
     int data;
     struct node* next;
 };
 
-// Function to insert a new node at the front of the list
-/*
-void push(struct node** head_ref, int new_data) {
-    struct node* new_node = (struct node*) malloc(sizeof(struct node));
-    new_node->data = new_data;
-    new_node->next = (*head_ref);
-    (*head_ref) = new_node;
-}
-
-// Function to insert a new node after a given node
-void insertAfter(struct node* prev_node, int new_data) {
-    if (prev_node == NULL) {
-        printf("the given previous node cannot be NULL");
-        return;
-    }
-    struct node* new_node = (struct node*) malloc(sizeof(struct node));
-    new_node->data = new_data;
-    new_node->next = prev_node->next;
-    prev_node->next = new_node;
-}
-*/
-
-// Function to insert a new node at the end of the list
 void insert(struct node** head_ref, int new_data) {
     struct node* new_node = (struct node*) malloc(sizeof(struct node));
     struct node *last = *head_ref;
@@ -80,7 +57,6 @@ bool member(struct node** head_ref, int new_data) {
     }
 }
 
-// Function to delete a node with a given key
 void delete(struct node** head_ref, int key) {
     struct node* temp = *head_ref, *prev;
     if (temp != NULL && temp->data == key) {
@@ -104,7 +80,7 @@ void printList(struct node* node) {
         node = node->next;
     }
 }
-
+int random_numbers[1000];
 // Main function
 int main() {
 
@@ -113,13 +89,18 @@ int main() {
     int seed = rand()%100;
     srand(seed);
 
-    int n  =rand()%10000+100;
+    int n  =1000;
 
-    int m  =rand()%100000+2000000;
+    int m  =10000;
 
-    double mMember = ((double)rand() / RAND_MAX);
-    double mInsert = ((double)rand() / RAND_MAX);
-    double mDelete = (1 - (mMember + mInsert));
+    double mMember = 0.99;
+    double mInsert = 0.005;
+    double mDelete = 0.005;
+
+    for (int i = 0; i < 1000; i++){
+        int random_number = rand()%65536;
+        random_numbers[i] = random_number;
+    }
 
     int count = 0;
     while (count<n){
@@ -129,23 +110,23 @@ int main() {
         count++;
     }
 
-    int start_time = clock(); 
+    clock_t start_time = clock(); 
     for (int i = 0; i < mInsert*m; i++) {
-        int random_number = rand()%65536;
+        int random_number =  random_numbers[i];
         insert(&head, random_number);
     }
     for (int i = 0; i < mMember*m; i++) {
-        int random_number = rand()%65536;
+        int random_number =  random_numbers[i];
         member(&head, random_number);
     }
     for (int i = 0; i < mDelete*m; i++) {
-        int random_number = rand()%65536;
+        int random_number =  random_numbers[i];
         delete(&head, random_number);
     }
-    int finish_time = clock();
+    clock_t finish_time = clock();
     //printf("%.10f\n", start_time/CLOCKS_PER_SEC);
     //printf("%.10f\n", finish_time/CLOCKS_PER_SEC);
-    double time_elapsed = (finish_time - start_time)/CLOCKS_PER_SEC;
+    double time_elapsed = ((double)(finish_time - start_time))/CLOCKS_PER_SEC;
     printf("%.20f\n", time_elapsed);
     //printList(head);
     

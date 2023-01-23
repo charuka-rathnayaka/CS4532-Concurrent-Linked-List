@@ -18,14 +18,18 @@ struct ThreadData {
 
 };
 
-void insert(struct node** head_ref, int new_data) {
+
+
+void insert(struct node** head_ref, int new_data,pthread_mutex_t mutex) {
     struct node* new_node = (struct node*) malloc(sizeof(struct node));
     struct node *last = *head_ref;
     new_node->data = new_data;
     new_node->next = NULL;
     bool data_exists = false;
+    pthread_mutex_lock(&mutex);
     if (*head_ref == NULL) {
         *head_ref = new_node;
+        pthread_mutex_unlock(&mutex);
         return;
     }
     while (last->next != NULL){
@@ -40,14 +44,17 @@ void insert(struct node** head_ref, int new_data) {
     else{
         free(new_node);
     }
+    pthread_mutex_unlock(&mutex);
     
     return;
 }
 
-bool member(struct node** head_ref, int new_data) {
+bool member(struct node** head_ref, int new_data,pthread_mutex_t mutex) {
     struct node *current_node = *head_ref;
     bool data_exists = false;
+    pthread_mutex_lock(&mutex);
     if (*head_ref == NULL) {
+        pthread_mutex_unlock(&mutex);
         return false;
     }
     while (current_node->next != NULL){
@@ -58,27 +65,35 @@ bool member(struct node** head_ref, int new_data) {
         current_node = current_node->next;
     }
     if(data_exists == true){
+        pthread_mutex_unlock(&mutex);
         return true;
     }
     else{
+        pthread_mutex_unlock(&mutex);
         return false;
     }
 }
 
 // Function to delete a node with a given key
-void delete(struct node** head_ref, int key) {
+void delete(struct node** head_ref, int key,pthread_mutex_t mutex) {
     struct node* temp = *head_ref, *prev;
+    pthread_mutex_lock(&mutex);
     if (temp != NULL && temp->data == key) {
         *head_ref = temp->next;
         free(temp);
+        pthread_mutex_unlock(&mutex);
         return;
     }
     while (temp != NULL && temp->data != key) {
         prev = temp;
         temp = temp->next;
     }
-    if (temp == NULL) return;
+    if (temp == NULL){
+        pthread_mutex_unlock(&mutex);
+        return;
+    } 
     prev->next = temp->next;
+    pthread_mutex_unlock(&mutex);
     free(temp);
 }
 
@@ -91,47 +106,32 @@ void printList(struct node* node) {
 }
 int thread_count;
 
+int random_numbers[1000];
+
+
 void *executeOperations(void* data){
-    //struct ThreadData *myData=data;
     struct ThreadData *myData = (struct ThreadData*) data;
     double mMember = 0.99;
     double mInsert = 0.005;
     double mDelete = 0.005;
 
-    
-    //printf("Hello from thread %f of %d\n",mMember, myData->m);
-    //return NULL;
-    //printf("Operations memeber %d insert %d delete %d\n",mMember, myData->mInsert,myData->mDelete);
-
     double mMemberOperations = (mMember)*(myData->m);
     double mInsertOperations = (mInsert)*(myData->m/(myData->threadCount));
     double mDeleteOperations =(mDelete)*(myData->m/(myData->threadCount));
-    //printf("Operations memeber %f insert %f delete %f\n",mMemberOperations, mInsertOperations,mDeleteOperations);
 
-    
     for (int i = 0; i < mMemberOperations; i++) {
-        
-        pthread_mutex_lock(&(myData->mutex));
-        int random_number = 5;
-        insert(&(myData->head), random_number);
-        pthread_mutex_unlock(&(myData->mutex));
-        
+        int random_number = random_numbers[i];
+        insert(&(myData->head), random_number,(myData->mutex));
     }
     for (int i = 0; i < mInsertOperations; i++) {
-        
-        pthread_mutex_lock(&(myData->mutex));
-        int random_number = 5;
-        member(&(myData->head), random_number);
-        pthread_mutex_unlock(&(myData->mutex));
+        int random_number = random_numbers[i];
+        member(&(myData->head), random_number,(myData->mutex));
     }
     for (int i = 0; i < mDeleteOperations; i++) {
-        
-        pthread_mutex_lock(&(myData->mutex));
-        int random_number = 5;
-        delete(&(myData->head), random_number);
-        pthread_mutex_unlock(&(myData->mutex));
+        int random_number = random_numbers[i];
+        delete(&(myData->head), random_number,(myData->mutex));
     }
-    //printf("Thread %d done \n", myData->threadID);
+    
     
 }
 
@@ -144,9 +144,7 @@ int main(int argc, char* argv[]) {
 
     pthread_mutex_t mutex;
     pthread_mutex_init(&mutex, NULL);
-
-    int seed = rand()%100;
-    srand(seed);
+    srand(10);
 
     int n  =1000;
 
@@ -155,23 +153,19 @@ int main(int argc, char* argv[]) {
     double mInsert =0.005;
     double mDelete = 0.005;
 
-    
+    for (int i = 0; i < 1000; i++){
+        int random_number = rand()%65536;
+        random_numbers[i] = random_number;
+    }
 
     int count = 0;
     while (count<n){
-        
-        pthread_mutex_lock(&mutex);
         int random_number = rand()%65536;
-        insert(&head, random_number);
-        pthread_mutex_unlock(&mutex);
-        // printf("\n%d", random_number);
+        insert(&head, random_number,mutex);
         count++;
     }
 
-    
-
     thread_count = strtol(argv[1],NULL,10);
-    //printf("Count \n%d", thread_count);
     thread_handles = malloc(thread_count*sizeof(pthread_t));
 
     
@@ -184,15 +178,9 @@ int main(int argc, char* argv[]) {
         data -> head = head;
         data -> m = m;
         data -> mutex = mutex;
-        
-        //printf("thread number creating \n%d", thread);
         pthread_create(&thread_handles[thread],NULL, executeOperations, (void *) data);
 
     }
-    
-    
-    
-    // printf("Hello from the main thread\n");
 
     for (thread=0;thread<thread_count;thread++){
         pthread_join(thread_handles[thread],NULL);
@@ -203,11 +191,4 @@ int main(int argc, char* argv[]) {
     free(thread_handles);
     return 0;
 
-
-
-    
-    
-    
-    //printList(head);
-    
 }
